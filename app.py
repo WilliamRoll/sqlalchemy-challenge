@@ -42,7 +42,7 @@ def welcome():
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
-        # f"/api/v1.0/tobs<br/>"
+        f"/api/v1.0/tobs<br/>"
         # f"/api/v1.0/tobs<br/>"
     )
 
@@ -93,6 +93,31 @@ def station_names():
         station_data.append(stat_dict)
 
     return jsonify(station_data) 
+
+@app.route("/api/v1.0/tobs")
+def most_active():
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    last_date = dt.date(2017,8,23)
+
+    #locate and define 12 month date
+    twelve_months = last_date - dt.timedelta(weeks=52)
+
+    temps_ma = session.query(measurement.date, measurement.tobs).\
+        filter(measurement.date >= twelve_months, measurement.station == 'USC00519281').all()
+
+    temp_data = []
+    for date, tobs in temps_ma:
+        temp_dict = {}
+        temp_dict["date"] = date
+        temp_dict["tobs"] = tobs   
+        temp_data.append(temp_dict) 
+
+    return jsonify(temp_data)
+    
+
+
 
 if __name__ == '__main__':
     app.run(debug=True)
