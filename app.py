@@ -44,7 +44,7 @@ def welcome():
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
         f"/api/v1.0/start<br/>"
-        f"/api/v1.0/<start>/<end>"
+        f"/api/v1.0/start_end<br/>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -69,7 +69,7 @@ def measurements():
 
     session.close()
 
-    # Create a dictionary from the row data and append to a list
+    #dictionary
     prcp_data = []
     for date, prcp in prcp_twelve_mon:
         prcp_dict = {}
@@ -84,11 +84,13 @@ def station_names():
     # Create our session (link) from Python to the DB
     session = Session(engine)
 
+    #query for all station names
     station_name = session.query(station.station).\
         order_by(station.station).all()
 
     session.close()
 
+    #dictionary
     station_data = []
     for stat in station_name:
         stat_dict = {}
@@ -107,11 +109,13 @@ def most_active():
     #locate and define 12 month date
     twelve_months = last_date - dt.timedelta(weeks=52)
 
+    #query
     temps_ma = session.query(measurement.date, measurement.tobs).\
         filter(measurement.date >= twelve_months, measurement.station == 'USC00519281').all()
 
     session.close()
 
+    #dictionary
     temp_data = []
     for date, tobs in temps_ma:
         temp_dict = {}
@@ -123,7 +127,7 @@ def most_active():
     
 @app.route("/api/v1.0/start")
 def start_only():
-    user_start_date = input("Please input date 'YYYY-MM-DD': ")
+    user_start_date = input("Please input start date 'YYYY-MM-DD': ")
 
     # Create our session (link) from Python to the DB
     session = Session(engine)
@@ -131,6 +135,7 @@ def start_only():
     #functions
     sel = [measurement.date, func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)]
 
+    #query
     station_sum_stats = session.query(*sel).\
         filter(measurement.date >= user_start_date).\
         group_by(measurement.date).\
@@ -138,6 +143,7 @@ def start_only():
 
     session.close()
 
+    #dictionary
     sum_stats_data = []
     for date, min_tobs, avg_tobs, max_tobs in station_sum_stats:
         sum_stats_dict = {}
@@ -149,6 +155,38 @@ def start_only():
         sum_stats_data.append(sum_stats_dict) 
 
     return jsonify(sum_stats_data)
+
+@app.route("/api/v1.0/start_end")
+def start_end():
+    user_start_date = input("Please input start date 'YYYY-MM-DD': ")
+    user_end_date = input("Please input end date 'YYYY-MM-DD': ")
+
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    #functions
+    sel = [measurement.date, func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)]
+
+    #query
+    station_sum_stats_se = session.query(*sel).\
+        filter(measurement.date >= user_start_date, measurement.date <= user_end_date).\
+        group_by(measurement.date).\
+        order_by(measurement.date).all()
+
+    session.close()
+
+    #dictionary
+    sum_stats_data_se = []
+    for date, min_tobs, avg_tobs, max_tobs in station_sum_stats_se:
+        sum_stats_dict_se = {}
+        sum_stats_dict_se["date"] = date
+        sum_stats_dict_se["min temp"] = min_tobs
+        sum_stats_dict_se["avg temp"] = avg_tobs
+        sum_stats_dict_se["max temp"] = max_tobs  
+        
+        sum_stats_data_se.append(sum_stats_dict_se) 
+
+    return jsonify(sum_stats_data_se) 
 
 if __name__ == '__main__':
     app.run(debug=True)
