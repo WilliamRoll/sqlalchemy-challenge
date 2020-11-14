@@ -23,7 +23,7 @@ Base.prepare(engine, reflect=True)
 #Measurement table
 measurement =  Base.classes.measurement
 #Station Table
-Station = Base.classes.station
+station = Base.classes.station
 
 #################################################
 # Flask Setup
@@ -41,7 +41,7 @@ def welcome():
     return (
         f"Available Routes:<br/>"
         f"/api/v1.0/precipitation<br/>"
-        # f"/api/v1.0/stations<br/>"
+        f"/api/v1.0/stations<br/>"
         # f"/api/v1.0/tobs<br/>"
         # f"/api/v1.0/tobs<br/>"
     )
@@ -78,6 +78,21 @@ def measurements():
 
     return jsonify(prcp_data)
 
+@app.route("/api/v1.0/stations")
+def station_names():
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
+
+    station_name = session.query(station.station).\
+        order_by(station.station).all()
+
+    station_data = []
+    for stat in station_name:
+        stat_dict = {}
+        stat_dict["station"] = stat    
+        station_data.append(stat_dict)
+
+    return jsonify(station_data) 
 
 if __name__ == '__main__':
     app.run(debug=True)
