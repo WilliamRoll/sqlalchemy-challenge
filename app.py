@@ -43,7 +43,8 @@ def welcome():
         f"/api/v1.0/precipitation<br/>"
         f"/api/v1.0/stations<br/>"
         f"/api/v1.0/tobs<br/>"
-        # f"/api/v1.0/tobs<br/>"
+        f"/api/v1.0/start<br/>"
+        f"/api/v1.0/<start>/<end>"
     )
 
 @app.route("/api/v1.0/precipitation")
@@ -86,6 +87,8 @@ def station_names():
     station_name = session.query(station.station).\
         order_by(station.station).all()
 
+    session.close()
+
     station_data = []
     for stat in station_name:
         stat_dict = {}
@@ -107,6 +110,8 @@ def most_active():
     temps_ma = session.query(measurement.date, measurement.tobs).\
         filter(measurement.date >= twelve_months, measurement.station == 'USC00519281').all()
 
+    session.close()
+
     temp_data = []
     for date, tobs in temps_ma:
         temp_dict = {}
@@ -116,8 +121,34 @@ def most_active():
 
     return jsonify(temp_data)
     
+@app.route("/api/v1.0/start")
+def start_only():
+    user_start_date = input("Please input date 'YYYY-MM-DD': ")
 
+    # Create our session (link) from Python to the DB
+    session = Session(engine)
 
+    #functions
+    sel = [measurement.date, func.min(measurement.tobs), func.avg(measurement.tobs), func.max(measurement.tobs)]
+
+    station_sum_stats = session.query(*sel).\
+        filter(measurement.date >= user_start_date).\
+        group_by(measurement.date).\
+        order_by(measurement.date).all()
+
+    session.close()
+
+    sum_stats_data = []
+    for date, min_tobs, avg_tobs, max_tobs in station_sum_stats:
+        sum_stats_dict = {}
+        sum_stats_dict["date"] = date
+        sum_stats_dict["min temp"] = min_tobs
+        sum_stats_dict["avg temp"] = avg_tobs
+        sum_stats_dict["max temp"] = max_tobs  
+        
+        sum_stats_data.append(sum_stats_dict) 
+
+    return jsonify(sum_stats_data)
 
 if __name__ == '__main__':
     app.run(debug=True)
